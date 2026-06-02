@@ -2,6 +2,7 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using static X11NativeSample.NativeX11Interop;
@@ -43,75 +44,122 @@ class App : Application
 class MainWindow : Window
 {
     private X11RuntimePatcher? _patcher;
+    private NativeRenderView? _renderView;
     private TextBlock _statusText;
     private TextBlock _mouseText;
-    private TextBlock _deltaText;
+    private TextBlock _keyText;
     private TextBlock _modeText;
-    private bool _relativeModeEnabled;
+    private Button _enableButton;
+    private Button _relMouseButton;
+    private bool _viewEnabled;
 
     public MainWindow()
     {
-        Title = "X11 Native Sample - C++ Event Handling";
-        Width = 800;
-        Height = 600;
+        Title = "X11 Native Sample - NativeControlHost + C++ Rendering";
+        Width = 900;
+        Height = 700;
 
         _statusText = new TextBlock
         {
-            Text = "Status: Waiting for window...",
+            Text = "Status: Initializing...",
             FontSize = 16,
             Margin = new Thickness(10),
         };
 
         _mouseText = new TextBlock
         {
-            Text = "Mouse: N/A",
-            FontSize = 14,
-            Margin = new Thickness(10, 0),
+            Text = "View Mouse: N/A",
+            FontSize = 13,
+            Margin = new Thickness(10, 2),
+            FontFamily = new FontFamily("Monospace"),
         };
 
-        _deltaText = new TextBlock
+        _keyText = new TextBlock
         {
-            Text = "Delta: N/A",
-            FontSize = 14,
-            Margin = new Thickness(10, 0),
+            Text = "View Keyboard: N/A",
+            FontSize = 13,
+            Margin = new Thickness(10, 2),
+            FontFamily = new FontFamily("Monospace"),
         };
 
         _modeText = new TextBlock
         {
-            Text = "Mode: Absolute (press 'R' for relative)",
-            FontSize = 14,
-            Margin = new Thickness(10, 0),
+            Text = "Relative Mouse: OFF",
+            FontSize = 13,
+            Margin = new Thickness(10, 2),
             Foreground = Brushes.DarkBlue,
         };
 
+        _enableButton = new Button
+        {
+            Content = "Enable View",
+            Margin = new Thickness(10, 5),
+            Padding = new Thickness(20, 8),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        _enableButton.Click += OnEnableButtonClick;
+
+        _relMouseButton = new Button
+        {
+            Content = "Toggle Relative Mouse",
+            Margin = new Thickness(10, 5),
+            Padding = new Thickness(20, 8),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            IsEnabled = false,
+        };
+        _relMouseButton.Click += OnRelMouseButtonClick;
+
         var infoText = new TextBlock
         {
-            Text = "This sample uses a native C++ library (libx11_native) to handle X11 events.\n" +
-                   "Mouse events and relative position are processed in C++ to avoid GC pressure.\n" +
-                   "The C# side patches Avalonia.X11 at runtime via reflection.\n\n" +
-                   "Press 'R' to toggle relative mouse mode.\n" +
-                   "Press 'Escape' to exit relative mouse mode.",
-            FontSize = 12,
-            Margin = new Thickness(10, 20, 10, 0),
+            Text = "The native view below is a child X11 window created in C++ via NativeControlHost.\n" +
+                   "It renders using X11 drawing (stub for Vulkan/GLX). Mouse absolute coordinates\n" +
+                   "are bound to this view. Events are only active when enabled via the button.\n" +
+                   "A crosshair shows mouse position inside the native view.",
+            FontSize = 11,
+            Margin = new Thickness(10, 10, 10, 5),
             TextWrapping = TextWrapping.Wrap,
             Foreground = Brushes.Gray,
         };
 
-        Content = new StackPanel
+        // Create the native render view (NativeControlHost subclass)
+        _renderView = new NativeRenderView
+        {
+            MinWidth = 640,
+            MinHeight = 360,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            Margin = new Thickness(10),
+        };
+
+        var buttonPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Children = { _enableButton, _relMouseButton },
+        };
+
+        Content = new DockPanel
         {
             Children =
             {
-                _statusText,
-                _mouseText,
-                _deltaText,
-                _modeText,
-                infoText,
+                new StackPanel
+                {
+                    Dock = Dock.Top,
+                    Children =
+                    {
+                        _statusText,
+                        buttonPanel,
+                        _mouseText,
+                        _keyText,
+                        _modeText,
+                        infoText,
+                    }
+                },
+                _renderView,
             }
         };
+        DockPanel.SetDock((Control)((DockPanel)Content).Children[0], Dock.Top);
 
-        // Initialize after the window is opened
         Opened += OnWindowOpened;
-        KeyDown += OnKeyDown;
         Closed += OnWindowClosed;
     }
 
@@ -119,7 +167,6 @@ class MainWindow : Window
     {
         _patcher = new X11RuntimePatcher(this);
 
-        // Delay initialization to ensure the platform handle is ready
         DispatcherTimer.RunOnce(() =>
         {
             if (_patcher.Initialize())
@@ -127,65 +174,84 @@ class MainWindow : Window
                 _statusText.Text = "Status: Native library initialized ✓";
                 _statusText.Foreground = Brushes.Green;
 
-                // Subscribe to native mouse events
-                _patcher.NativeMouseEvent += OnNativeMouseEvent;
+                // Pass display to the render view
+                _renderView!.SetDisplay(_patcher.Display);
 
-                // Start a timer to poll mouse delta (for display purposes)
+                // Subscribe to view events
+                _renderView.ViewMouseEvent += OnViewMouseEvent;
+                _renderView.ViewKeyEvent += OnViewKeyEvent;
+
+                // Poll display
                 var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
-                timer.Tick += (_, _) => UpdateMouseDisplay();
+                timer.Tick += (_, _) => UpdateDisplay();
                 timer.Start();
             }
             else
             {
-                _statusText.Text = "Status: Failed to initialize native library ✗";
+                _statusText.Text = "Status: Failed to initialize ✗";
                 _statusText.Foreground = Brushes.Red;
             }
-        }, TimeSpan.FromMilliseconds(100));
+        }, TimeSpan.FromMilliseconds(200));
     }
 
-    private void OnNativeMouseEvent(NativeMouseEventType type, NativeMouseEvent ev)
+    private void OnEnableButtonClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        // This is called from native code - update UI on dispatcher
+        if (_renderView == null) return;
+
+        _viewEnabled = !_viewEnabled;
+        _renderView.SetEnabled(_viewEnabled);
+
+        _enableButton.Content = _viewEnabled ? "Disable View" : "Enable View";
+        _relMouseButton.IsEnabled = _viewEnabled;
+
+        if (!_viewEnabled)
+        {
+            _modeText.Text = "Relative Mouse: OFF";
+            _modeText.Foreground = Brushes.DarkBlue;
+        }
+    }
+
+    private void OnRelMouseButtonClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_renderView == null || !_viewEnabled) return;
+
+        bool newMode = !_renderView.IsRelativeMouseMode;
+        _renderView.SetRelativeMouseMode(newMode);
+        _modeText.Text = newMode ? "Relative Mouse: ON (pointer locked)" : "Relative Mouse: OFF";
+        _modeText.Foreground = newMode ? Brushes.Red : Brushes.DarkBlue;
+    }
+
+    private void OnViewMouseEvent(NativeMouseEventType type, NativeMouseEvent ev)
+    {
         Dispatcher.UIThread.Post(() =>
         {
-            _mouseText.Text = $"Mouse: abs=({ev.AbsX:F1}, {ev.AbsY:F1}) " +
-                              $"rel=({ev.RelX:F3}, {ev.RelY:F3}) " +
-                              $"type={type} buttons=0x{ev.Buttons:X}";
+            _mouseText.Text = $"View Mouse: abs=({ev.AbsX:F1},{ev.AbsY:F1}) " +
+                              $"rel=({ev.RelX:F3},{ev.RelY:F3}) " +
+                              $"type={type} btn=0x{ev.Buttons:X} mod=0x{ev.Modifiers:X}";
         });
     }
 
-    private void UpdateMouseDisplay()
+    private void OnViewKeyEvent(NativeKeyEventType type, NativeKeyEvent ev)
     {
-        if (_patcher == null) return;
-
-        var (relX, relY) = _patcher.GetRelativeMousePosition();
-        var (deltaX, deltaY) = _patcher.GetMouseDelta();
-
-        _deltaText.Text = $"Delta: ({deltaX:F1}, {deltaY:F1}) | RelPos: ({relX:F3}, {relY:F3})";
+        Dispatcher.UIThread.Post(() =>
+        {
+            _keyText.Text = $"View Keyboard: {type} keycode={ev.Keycode} keysym=0x{ev.Keysym:X} mod=0x{ev.Modifiers:X}";
+        });
     }
 
-    private void OnKeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+    private void UpdateDisplay()
     {
-        if (_patcher == null) return;
-
-        if (e.Key == Avalonia.Input.Key.R && !_relativeModeEnabled)
+        if (_renderView == null || !_viewEnabled) return;
+        var (dx, dy) = _renderView.GetMouseDelta();
+        if (dx != 0 || dy != 0)
         {
-            _relativeModeEnabled = true;
-            _patcher.SetRelativeMouseMode(true);
-            _modeText.Text = "Mode: RELATIVE (pointer locked, press 'Escape' to exit)";
-            _modeText.Foreground = Brushes.Red;
-        }
-        else if (e.Key == Avalonia.Input.Key.Escape && _relativeModeEnabled)
-        {
-            _relativeModeEnabled = false;
-            _patcher.SetRelativeMouseMode(false);
-            _modeText.Text = "Mode: Absolute (press 'R' for relative)";
-            _modeText.Foreground = Brushes.DarkBlue;
+            // Delta is already shown in mouse event, but we can show accumulated here
         }
     }
 
     private void OnWindowClosed(object? sender, EventArgs e)
     {
+        _renderView?.Dispose();
         _patcher?.Dispose();
     }
 }

@@ -24,6 +24,12 @@ internal static class NativeX11Interop
         Leave = 8,
     }
 
+    public enum NativeKeyEventType
+    {
+        KeyDown = 0,
+        KeyUp = 1,
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct NativeMouseEvent
     {
@@ -38,8 +44,66 @@ internal static class NativeX11Interop
         public ulong Timestamp;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativeKeyEvent
+    {
+        public uint Keycode;
+        public uint Keysym;
+        public uint Modifiers;
+        public ulong Timestamp;
+    }
+
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public unsafe delegate void MouseEventCallback(NativeMouseEventType type, NativeMouseEvent* mouseEvent);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public unsafe delegate void KeyEventCallback(NativeKeyEventType type, NativeKeyEvent* keyEvent);
+
+    // --- View API: native child window for Vulkan/GLX rendering ---
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern ulong nativeview_create(IntPtr display, ulong parentWindow, int width, int height);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_destroy();
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern ulong nativeview_get_handle();
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_set_enabled(int enabled);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int nativeview_get_enabled();
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_resize(int width, int height);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_set_mouse_callback(MouseEventCallback callback);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_set_key_callback(KeyEventCallback callback);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_get_mouse_position(out double relX, out double relY);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_get_mouse_delta(out double deltaX, out double deltaY);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_set_relative_mouse_mode(int enabled);
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int nativeview_get_relative_mouse_mode();
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void nativeview_render_frame();
+
+    [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int nativeview_process_xevent(IntPtr xevent);
+
+    // --- Legacy top-level window API ---
 
     [DllImport(LibName, CallingConvention = CallingConvention.Cdecl)]
     public static extern int native_init(IntPtr display, ulong window);

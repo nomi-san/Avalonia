@@ -26,6 +26,11 @@ internal unsafe class X11RuntimePatcher : IDisposable
 
     public event Action<NativeMouseEventType, NativeMouseEvent>? NativeMouseEvent;
 
+    /// <summary>
+    /// The X11 Display pointer, available after Initialize() succeeds.
+    /// </summary>
+    public IntPtr Display => _display;
+
     public X11RuntimePatcher(Window window)
     {
         _window = window;
