@@ -115,7 +115,7 @@ internal unsafe class X11RuntimePatcher : IDisposable
         var getServiceMethod = locator.GetType().GetMethod("GetService");
         if (getServiceMethod == null) return IntPtr.Zero;
 
-        var windowingType = typeof(Avalonia.Controls.Platform.IWindowingPlatform);
+        var windowingType = typeof(Avalonia.Platform.IWindowingPlatform);
         var genericMethod = getServiceMethod.MakeGenericMethod(windowingType);
         var platform = genericMethod.Invoke(locator, null);
 
