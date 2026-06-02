@@ -21,7 +21,7 @@ internal unsafe class X11RuntimePatcher : IDisposable
     private MouseEventCallback? _nativeCallback;
     private bool _initialized;
 
-    // Keep a strong reference to prevent GC collecting the delegate
+    // Keep a strong static reference to prevent GC from collecting the delegate
     private static MouseEventCallback? s_pinnedCallback;
 
     public event Action<NativeMouseEventType, NativeMouseEvent>? NativeMouseEvent;
