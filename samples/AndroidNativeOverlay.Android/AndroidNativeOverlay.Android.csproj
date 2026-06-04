@@ -33,32 +33,26 @@
     <_JniSrcDir>$(MSBuildProjectDirectory)\jni</_JniSrcDir>
     <_JniBuildDir>$(IntermediateOutputPath)jni-build</_JniBuildDir>
     <_JniLibsDir>$(IntermediateOutputPath)jni-libs</_JniLibsDir>
-    <_NdkAbiList>arm64-v8a;x86_64</_NdkAbiList>
   </PropertyGroup>
+
+  <ItemGroup>
+    <_NdkAbis Include="arm64-v8a" />
+    <_NdkAbis Include="x86_64" />
+  </ItemGroup>
 
   <Target Name="_BuildNativeGLRenderer"
           BeforeTargets="_ResolveAssemblies"
-          Inputs="$(_JniSrcDir)\gl_renderer.cpp;$(_JniSrcDir)\gl_renderer.h;$(_JniSrcDir)\CMakeLists.txt"
+          Inputs="$(_JniSrcDir)\gl_renderer.c;$(_JniSrcDir)\gl_renderer.h;$(_JniSrcDir)\CMakeLists.txt"
           Outputs="$(_JniLibsDir)\arm64-v8a\libgl_renderer.so"
           Condition="'$(_NdkDir)' != '' AND Exists('$(_NdkDir)')">
     <Message Importance="high" Text="Building native GL renderer with NDK: $(_NdkDir)" />
-    <Exec Command="cmake -S &quot;$(_JniSrcDir)&quot; -B &quot;$(_JniBuildDir)\%(Abi)&quot; -DCMAKE_TOOLCHAIN_FILE=&quot;$(_NdkDir)/build/cmake/android.toolchain.cmake&quot; -DANDROID_ABI=%(Abi) -DANDROID_PLATFORM=android-24 -DCMAKE_BUILD_TYPE=Release"
-          WorkingDirectory="$(MSBuildProjectDirectory)">
-      <Output TaskParameter="ExitCode" PropertyName="_CmakeConfigureExitCode" />
-    </Exec>
-    <Exec Command="cmake --build &quot;$(_JniBuildDir)\%(Abi)&quot; --config Release"
-          WorkingDirectory="$(MSBuildProjectDirectory)">
-      <Output TaskParameter="ExitCode" PropertyName="_CmakeBuildExitCode" />
-    </Exec>
-    <MakeDir Directories="$(_JniLibsDir)\%(Abi)" />
-    <Copy SourceFiles="$(_JniBuildDir)\%(Abi)\libgl_renderer.so"
-          DestinationFolder="$(_JniLibsDir)\%(Abi)" />
-    <ItemGroup>
-      <_NdkAbis Include="$(_NdkAbiList)" />
-      <_NdkAbis>
-        <Abi>%(Identity)</Abi>
-      </_NdkAbis>
-    </ItemGroup>
+    <Exec Command="cmake -S &quot;$(_JniSrcDir)&quot; -B &quot;$(_JniBuildDir)\%(_NdkAbis.Identity)&quot; -DCMAKE_TOOLCHAIN_FILE=&quot;$(_NdkDir)/build/cmake/android.toolchain.cmake&quot; -DANDROID_ABI=%(_NdkAbis.Identity) -DANDROID_PLATFORM=android-24 -DCMAKE_BUILD_TYPE=Release"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Exec Command="cmake --build &quot;$(_JniBuildDir)\%(_NdkAbis.Identity)&quot; --config Release"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <MakeDir Directories="$(_JniLibsDir)\%(_NdkAbis.Identity)" />
+    <Copy SourceFiles="$(_JniBuildDir)\%(_NdkAbis.Identity)\libgl_renderer.so"
+          DestinationFolder="$(_JniLibsDir)\%(_NdkAbis.Identity)" />
   </Target>
 
   <Target Name="_IncludeNativeLibs" BeforeTargets="_ResolveAssemblies"

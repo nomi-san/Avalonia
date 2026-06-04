@@ -26,13 +26,6 @@ public partial class OverlayPanel : UserControl
 
     private void OnClickThroughChanged(object? sender, RoutedEventArgs e)
     {
-        if (ClickThroughCheckBox?.IsChecked == true)
-        {
-            OverlayService.RequestToggleClickThrough();
-        }
-        else
-        {
-            OverlayService.RequestToggleClickThrough();
-        }
+        OverlayService.RequestToggleClickThrough();
     }
 }
