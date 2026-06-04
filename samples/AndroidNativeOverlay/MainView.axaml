@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AndroidNativeOverlay.MainView">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="24">
+    <!-- Header -->
+    <StackPanel Grid.Row="0" Spacing="8" Margin="0,16,0,0">
+      <TextBlock Text="Avalonia + Native GL Overlay"
+                 FontSize="22" FontWeight="Bold"
+                 HorizontalAlignment="Center"
+                 Foreground="#FFFFFF" />
+      <TextBlock Text="Base Avalonia layer behind native OpenGL surface"
+                 FontSize="13" Opacity="0.7"
+                 HorizontalAlignment="Center"
+                 Foreground="#CCCCCC" />
+    </StackPanel>
+
+    <!-- Center info -->
+    <StackPanel Grid.Row="1" VerticalAlignment="Center" Spacing="12"
+                HorizontalAlignment="Center">
+      <TextBlock Text="&#x2191; Native OpenGL ES surface is rendered above this layer &#x2191;"
+                 FontSize="14" Foreground="#88FFFFFF"
+                 HorizontalAlignment="Center" TextWrapping="Wrap"
+                 TextAlignment="Center" />
+      <TextBlock Text="&#x2193; Avalonia XAML overlay floats above the GL surface &#x2193;"
+                 FontSize="14" Foreground="#88FFFFFF"
+                 HorizontalAlignment="Center" TextWrapping="Wrap"
+                 TextAlignment="Center" />
+    </StackPanel>
+
+    <!-- Bottom controls -->
+    <StackPanel Grid.Row="2" Spacing="12" Margin="0,0,0,24">
+      <Button Content="Toggle Avalonia Overlay"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Center"
+              Height="48" FontSize="16"
+              Click="OnToggleOverlay" />
+      <TextBlock x:Name="StatusText"
+                 Text="Tap the button to show the Avalonia overlay on top of the GL surface."
+                 FontSize="12" Opacity="0.6"
+                 HorizontalAlignment="Center"
+                 Foreground="#AAAAAA"
+                 TextWrapping="Wrap" TextAlignment="Center" />
+    </StackPanel>
+  </Grid>
+</UserControl>

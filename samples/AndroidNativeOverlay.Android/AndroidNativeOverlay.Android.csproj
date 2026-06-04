@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(AvsCurrentAndroidTargetFramework)</TargetFramework>
+    <SupportedOSPlatformVersion>$(AvsMinSupportedAndroidVersion)</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <ApplicationId>com.Avalonia.AndroidNativeOverlay</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Android\Avalonia.Android\Avalonia.Android.csproj" />
+    <ProjectReference Include="..\AndroidNativeOverlay\AndroidNativeOverlay.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AndroidResource Include="..\..\build\Assets\Icon.png">
+      <Link>Resources\drawable\Icon.png</Link>
+    </AndroidResource>
+  </ItemGroup>
+
+  <!--
+    Build the C++ NDK library (libgl_renderer.so) using CMake.
+    Requires Android NDK to be installed.
+    Set ANDROID_NDK_HOME or use the NDK bundled with .NET Android SDK.
+  -->
+  <PropertyGroup>
+    <_NdkDir Condition="'$(_NdkDir)' == ''">$(AndroidNdkDirectory)</_NdkDir>
+    <_NdkDir Condition="'$(_NdkDir)' == ''">$(ANDROID_NDK_HOME)</_NdkDir>
+    <_NdkDir Condition="'$(_NdkDir)' == ''">$(ANDROID_NDK_ROOT)</_NdkDir>
+    <_JniSrcDir>$(MSBuildProjectDirectory)\jni</_JniSrcDir>
+    <_JniBuildDir>$(IntermediateOutputPath)jni-build</_JniBuildDir>
+    <_JniLibsDir>$(IntermediateOutputPath)jni-libs</_JniLibsDir>
+    <_NdkAbiList>arm64-v8a;x86_64</_NdkAbiList>
+  </PropertyGroup>
+
+  <Target Name="_BuildNativeGLRenderer"
+          BeforeTargets="_ResolveAssemblies"
+          Inputs="$(_JniSrcDir)\gl_renderer.cpp;$(_JniSrcDir)\gl_renderer.h;$(_JniSrcDir)\CMakeLists.txt"
+          Outputs="$(_JniLibsDir)\arm64-v8a\libgl_renderer.so"
+          Condition="'$(_NdkDir)' != '' AND Exists('$(_NdkDir)')">
+    <Message Importance="high" Text="Building native GL renderer with NDK: $(_NdkDir)" />
+    <Exec Command="cmake -S &quot;$(_JniSrcDir)&quot; -B &quot;$(_JniBuildDir)\%(Abi)&quot; -DCMAKE_TOOLCHAIN_FILE=&quot;$(_NdkDir)/build/cmake/android.toolchain.cmake&quot; -DANDROID_ABI=%(Abi) -DANDROID_PLATFORM=android-24 -DCMAKE_BUILD_TYPE=Release"
+          WorkingDirectory="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="ExitCode" PropertyName="_CmakeConfigureExitCode" />
+    </Exec>
+    <Exec Command="cmake --build &quot;$(_JniBuildDir)\%(Abi)&quot; --config Release"
+          WorkingDirectory="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="ExitCode" PropertyName="_CmakeBuildExitCode" />
+    </Exec>
+    <MakeDir Directories="$(_JniLibsDir)\%(Abi)" />
+    <Copy SourceFiles="$(_JniBuildDir)\%(Abi)\libgl_renderer.so"
+          DestinationFolder="$(_JniLibsDir)\%(Abi)" />
+    <ItemGroup>
+      <_NdkAbis Include="$(_NdkAbiList)" />
+      <_NdkAbis>
+        <Abi>%(Identity)</Abi>
+      </_NdkAbis>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_IncludeNativeLibs" BeforeTargets="_ResolveAssemblies"
+          DependsOnTargets="_BuildNativeGLRenderer"
+          Condition="Exists('$(_JniLibsDir)')">
+    <ItemGroup>
+      <AndroidNativeLibrary Include="$(_JniLibsDir)\**\libgl_renderer.so" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_WarnNdkMissing" BeforeTargets="Build"
+          Condition="'$(_NdkDir)' == '' OR !Exists('$(_NdkDir)')">
+    <Warning Text="Android NDK not found. The native GL renderer (libgl_renderer.so) will not be built. Set ANDROID_NDK_HOME or install the NDK via Android SDK Manager. See jni/README for manual build instructions." />
+  </Target>
+</Project>

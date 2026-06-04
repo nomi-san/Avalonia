@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(AvsCurrentTargetFramework)</TargetFramework>
+    <IncludeAvaloniaGenerators>true</IncludeAvaloniaGenerators>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../packages/Avalonia/Avalonia.csproj" />
+    <ProjectReference Include="../../src/Avalonia.Themes.Fluent/Avalonia.Themes.Fluent.csproj" />
+  </ItemGroup>
+</Project>

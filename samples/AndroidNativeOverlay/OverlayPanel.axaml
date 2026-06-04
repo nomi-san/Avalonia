@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AndroidNativeOverlay.OverlayPanel">
+
+  <!-- Root is non-hit-testable so transparent areas are click-through -->
+  <Grid IsHitTestVisible="False">
+    <Border IsHitTestVisible="True"
+            Background="#CC1E1E2E"
+            CornerRadius="16"
+            Padding="20"
+            Margin="24,80"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Stretch"
+            BoxShadow="0 8 32 0 #80000000">
+      <StackPanel Spacing="12">
+        <!-- Title bar -->
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="&#x1F5D7; Avalonia Overlay"
+                     FontSize="18" FontWeight="SemiBold"
+                     Foreground="#E0E0FF"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="&#x2715;"
+                  Background="Transparent"
+                  Foreground="#FF6B6B"
+                  FontSize="18" Padding="8,4"
+                  Click="OnClose"
+                  VerticalAlignment="Center" />
+        </Grid>
+
+        <Separator Background="#333355" />
+
+        <!-- Info text -->
+        <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#B0B0D0"
+                   Text="This panel is rendered by Avalonia XAML on top of the native OpenGL ES surface. It acts as a frameless overlay — similar to a popup window on desktop platforms." />
+
+        <!-- Interactive controls -->
+        <StackPanel Spacing="8" Margin="0,4,0,0">
+          <TextBlock Text="Overlay Controls" FontSize="14"
+                     FontWeight="SemiBold" Foreground="#9090CC" />
+          <Slider x:Name="OpacitySlider" Minimum="0.2" Maximum="1.0" Value="0.8"
+                  ValueChanged="OnOpacityChanged" />
+          <TextBlock x:Name="OpacityLabel" Text="Panel Opacity: 0.8"
+                     FontSize="12" Foreground="#8888AA" />
+        </StackPanel>
+
+        <!-- Click-through toggle -->
+        <StackPanel Spacing="4" Margin="0,4,0,0">
+          <CheckBox x:Name="ClickThroughCheckBox"
+                    Content="Click-through mode (non-interactive)"
+                    Foreground="#B0B0D0" FontSize="13"
+                    IsCheckedChanged="OnClickThroughChanged" />
+          <TextBlock Text="When enabled, touches pass through to the GL surface below."
+                     FontSize="11" Foreground="#666688"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>
