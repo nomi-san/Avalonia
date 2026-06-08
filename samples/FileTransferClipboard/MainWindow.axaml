@@ -1,0 +1,65 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FileTransferClipboard.MainWindow"
+        Title="File Transfer Clipboard - Eager Copy Sample"
+        Width="700" Height="550">
+
+    <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto">
+        <!-- Header / Description -->
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,15">
+            <Run FontWeight="Bold" FontSize="16">Eager File Copy to Clipboard (macOS &amp; X11)</Run>
+            <LineBreak/>
+            <LineBreak/>
+            <Run>This sample demonstrates the "eager copy" approach for placing files on the clipboard</Run>
+            <Run>so they can be pasted into Finder (macOS) or a file manager (Linux/X11).</Run>
+            <LineBreak/>
+            <LineBreak/>
+            <Run FontWeight="SemiBold">How it works:</Run>
+            <Run>Since macOS NSPasteboard and X11 selections only support file URLs (not lazy</Run>
+            <Run>IDataObject-style promises for paste operations), files must exist on disk before</Run>
+            <Run>being placed on the clipboard. The approach is:</Run>
+            <LineBreak/>
+            <Run>1. Download/transfer files from a remote source to a local temp directory</Run>
+            <LineBreak/>
+            <Run>2. Show progress UI during the transfer</Run>
+            <LineBreak/>
+            <Run>3. Place the resulting local file paths on the clipboard</Run>
+            <LineBreak/>
+            <Run>4. User pastes into Finder/file manager — the OS copies from temp to destination</Run>
+        </TextBlock>
+
+        <!-- URL Input -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+            <TextBox x:Name="UrlInput" Watermark="Enter file URL to download (or use default sample)"
+                     Text="https://speed.hetzner.de/100MB.bin" />
+            <Button Grid.Column="1" x:Name="CopyToClipboardButton" Content="Download &amp; Copy to Clipboard"
+                    Margin="10,0,0,0" Click="OnCopyToClipboard" Classes="accent" />
+        </Grid>
+
+        <!-- Progress Area -->
+        <Border Grid.Row="2" BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                BorderThickness="1" CornerRadius="4" Padding="15">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+                <TextBlock Grid.Row="0" x:Name="StatusText" Text="Ready. Click the button to start a file transfer."
+                           FontWeight="SemiBold" Margin="0,0,0,10"/>
+
+                <ProgressBar Grid.Row="1" x:Name="TransferProgress" Minimum="0" Maximum="100"
+                             Value="0" Height="20" Margin="0,0,0,5"/>
+
+                <TextBlock Grid.Row="2" x:Name="ProgressText" Text="" Margin="0,0,0,10"/>
+
+                <TextBlock Grid.Row="3" x:Name="FilePathText" Text="" TextWrapping="Wrap"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+
+                <TextBlock Grid.Row="4" x:Name="ClipboardInfoText" Text="" TextWrapping="Wrap"
+                           VerticalAlignment="Bottom"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            </Grid>
+        </Border>
+
+        <!-- Platform Info -->
+        <TextBlock Grid.Row="3" x:Name="PlatformInfoText" Margin="0,10,0,0"
+                   FontSize="11" Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                   TextWrapping="Wrap"/>
+    </Grid>
+</Window>
